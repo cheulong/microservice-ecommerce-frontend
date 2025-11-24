@@ -11,9 +11,9 @@ app.use(
 );
 const PORT = process.env.PORT || 5000;
 
-// app.get("/health", (req, res) => {
-//   res.status(200).send("Product Service is healthy");
-// });
+app.get("/health", (req, res) => {
+  res.status(200).send("Product Service is healthy");
+});
 
 app.listen(PORT, () => {
   console.log(`Product Service is running on port ${PORT}`);

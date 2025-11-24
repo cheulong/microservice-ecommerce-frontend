@@ -29,6 +29,14 @@ lint:product-service:
     - changes:
         - apps/product-service/**/*
 
+lint:order-service:
+  <<: *sast_common
+  script:
+    - pnpm turbo run lint --filter=order-service
+  allow_failure: false
+  rules:
+    - changes:
+        - apps/order-service/**/*
 
 
 
