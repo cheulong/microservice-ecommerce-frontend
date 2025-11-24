@@ -38,7 +38,14 @@ lint:order-service:
     - changes:
         - apps/order-service/**/*
 
-
+lint:payment-service:
+  <<: *sast_common
+  script:
+    - pnpm turbo run lint --filter=payment-service
+  allow_failure: false
+  rules:
+    - changes:
+        - apps/payment-service/**/*
 
 
 
