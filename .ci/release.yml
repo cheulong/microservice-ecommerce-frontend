@@ -1,0 +1,41 @@
+# ---- UPDATE CHANGELOG ----
+update_changelog:
+  stage: release
+  needs: [deploy_prod]
+  variables:
+    GITLAB_TOKEN: $RELEASE_IT
+  before_script:
+    - apt-get update && apt-get install -y git
+    - git config --global user.email "ci-bot@gitlab.com"
+    - git config --global user.name "GitLab CI"
+    - git remote set-url origin https://oauth2:${RELEASE_IT}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git
+    - git fetch --all --tags
+    - git checkout -B "$CI_COMMIT_BRANCH" "origin/$CI_COMMIT_BRANCH"
+  script:
+    - npx release-it --ci
+  after_script:
+    - echo $(git tag --sort=-v:refname | head -n1) > version.txt
+  artifacts:
+    paths:
+      - version.txt
+  # rules:
+  #   - if: '$CI_COMMIT_BRANCH == "main"'
+
+push_release_image:
+  stage: release
+  extends: .base_docker_job
+  needs: [update_changelog, deploy_prod]
+
+  script:
+    - IMAGE_TAG=$(cat movies-finder-deployment/web-app/image_tag.txt)
+    - VERSION=$(cat version.txt)
+    - echo $VERSION
+    - echo $IMAGE_TAG
+    - echo $DOCKER_NAME
+    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+    - docker pull $DOCKER_NAME:$IMAGE_TAG
+    - docker tag $DOCKER_NAME:$IMAGE_TAG $DOCKER_NAME:$VERSION
+    - docker push $DOCKER_NAME:$VERSION
+    - echo "Release process completed successfully."
+  # rules:
+  #   - if: '$CI_COMMIT_BRANCH == "main"'

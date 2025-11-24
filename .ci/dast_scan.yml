@@ -1,0 +1,46 @@
+# ---- RUN APP ----
+# This job runs the application using Docker Compose.
+run_app:
+  stage: dast_scan
+  extends: .base_docker_job
+  needs: [build]
+  # variables:
+  #   DOCKER_DRIVER: overlay2
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
+    - docker pull $DOCKER_IMAGE:$DOCKER_TAG
+    # - apk add --no-cache curl
+  script:
+    - docker run --name app --rm -d -p 80:80 $DOCKER_IMAGE:$DOCKER_TAG
+    - sleep 15 # wait for app to start
+    # - curl -f http://localhost:80 || exit 1
+  # rules:
+  #   - if: '$CI_COMMIT_BRANCH == "dev"'
+
+# ---- OWASP ZAP ----
+# This job runs the OWASP ZAP security scanner against the application.
+owap_zap:
+  stage: dast_scan
+  image: zaproxy/zap-stable
+  services:
+    - name: $DOCKER_IMAGE:$DOCKER_TAG
+      alias: app
+  before_script:
+    - mkdir -p /zap/wrk
+  script:
+    - echo 'owap zap'
+    - zap-baseline.py -t http://app:80 -g gen.conf -r zap-report.html || true
+    - cp /zap/wrk/zap-report.html .
+    # full scan: zap-full-scan.py
+    # api scan: zap-api-scan.py
+  needs: [run_app]
+  retry: 2
+  artifacts:
+    expire_in: "30 days"
+    when: always
+    paths:
+      - zap-report.html
+  # rules:
+  #   - if: '$CI_COMMIT_BRANCH == "dev"'
+  #     when: manual      # Show with Play button on commits
+  # allow_failure: true

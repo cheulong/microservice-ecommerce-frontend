@@ -1,0 +1,48 @@
+workflow:
+  rules:
+    - if: '$CI_COMMIT_TAG'
+      when: never
+    - when: always
+
+default:
+  image: node:23-bookworm-slim
+  tags:
+    - linux-homelab-general-vm
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - .pnpm-store
+      - node_modules
+      - .turbo
+
+before_script:
+  - corepack enable
+  - pnpm install --frozen-lockfile
+      
+variables:
+  DOCKER_NAME: "cheulong/ecommerce-microservices"
+  DOCKER_IMAGE: $CI_REGISTRY_IMAGE
+  DOCKER_TAG: $CI_COMMIT_SHORT_SHA
+  DOCKER_HOST: tcp://docker:2375
+  DOCKER_TLS_CERTDIR: ""
+
+
+.base_docker_job:
+  image:
+    name: docker:28
+  services:
+    - name: docker:dind
+      alias: docker
+
+
+stages:
+  - prepare
+  - sast_scan
+  # - test
+  # - build
+  # - security
+  # - dast_scan
+  # - deploy
+  # - release
+  # - slack_notify
+  # - clean_up

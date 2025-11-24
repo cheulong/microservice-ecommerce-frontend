@@ -1,0 +1,49 @@
+# ---- PUSH IMAGE ----
+push_image:
+  stage: deploy
+  extends: .base_docker_job
+  script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
+    - docker pull $DOCKER_IMAGE:$DOCKER_TAG
+    - docker tag $DOCKER_IMAGE:$DOCKER_TAG $DOCKER_NAME:$DOCKER_TAG
+    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+    - docker push $DOCKER_NAME:$DOCKER_TAG
+  # rules:
+  #   - if: '$CI_COMMIT_BRANCH == "dev"'
+
+# ---- UPDATE MANIFEST REPO ----
+deploy_prod:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache git bash
+  script:
+    - git config --global user.email "ci@example.com"
+    - git config --global user.name "GitLab CI"
+    - git clone https://gitlab-ci-token:$CI_JOB_TOKEN@gitlab.com/cheulong-devops/movies-finder/movies-finder-deployment.git
+    - cd movies-finder-deployment/web-app
+    # - "IMAGE_TAG=$(grep 'tag:' values.dev.yaml | head -1 | sed 's/tag: //')"
+    # - 'sed -i "s|tag:.*|tag: $IMAGE_TAG|" values.prod.yaml'
+    - 'sed -i "s|tag:.*|tag: $CI_COMMIT_SHORT_SHA|" values.prod.yaml'
+    - echo "Checking for changes..."
+    - |
+      if git diff --quiet; then
+        echo "No changes to commit."
+      else
+        git add .
+        git commit -m "ci: Update production deployment image tag to $IMAGE_TAG"
+        git push https://oauth2:$GITLAB_DEPLOYMENT_WRITE_TOKEN@gitlab.com/cheulong-devops/movies-finder/movies-finder-deployment.git HEAD:main
+      fi
+    - IMAGE_TAG=$CI_COMMIT_SHORT_SHA
+    - echo $IMAGE_TAG > image_tag.txt
+  after_script:
+    - echo "production" > deploy_env.txt
+  artifacts:
+    paths:
+      - movies-finder-deployment/web-app/image_tag.txt
+      - deploy_env.txt
+  when: manual
+  # rules:
+  #   - if: '$CI_COMMIT_BRANCH == "main"'
+  environment:
+    name: production

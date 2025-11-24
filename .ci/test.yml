@@ -1,0 +1,30 @@
+# ---- TEST ----
+unit_test:
+  stage: test
+  script:
+    - npm run test
+  needs: [install_dependencies]
+  allow_failure: false
+
+playwright_test:
+  stage: test
+  image: mcr.microsoft.com/playwright:v1.54.0-noble
+  before_script:
+    # Check for the Playwright cache directory
+    - |
+      if [ -d "$HOME/.cache/ms-playwright/chromium" ]; then
+        echo "Playwright cache exists."
+      else
+        echo "Playwright cache does not exist. Installing Chromium..."
+        npx playwright install --with-deps chromium
+      fi
+  script:
+    - npm run playwright --reporter=html --output=playwright-report
+  artifacts:
+    when: always
+    paths:
+      - playwright-report/
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "dev"'
+      when: manual      # Show with Play button on commits
+  allow_failure: true

@@ -1,0 +1,10 @@
+# --- Clean up ---
+clean_up:
+  stage: clean_up
+  extends: .base_docker_job
+  script:
+    - echo "Stop docker container"
+    - docker stop app || true
+    - echo "Cleaning up temporary files"
+    - rm -rf node_modules/
+  allow_failure: true

@@ -1,0 +1,30 @@
+# ---- SLACK NOTIFY ----
+slack_notify:
+  stage: slack_notify
+  image:
+    name: alpine:latest
+  before_script:
+    - apk add --no-cache curl
+  script:
+    - DEPLOY_ENV=$(cat deploy_env.txt) || true
+    - |
+      if [ "$DEPLOY_ENV" = "staging" ]; then
+        MESSAGE="✅🚀 Deployed to *STAGING* – $CI_COMMIT_SHORT_SHA"
+      elif [ "$DEPLOY_ENV" = "production" ]; then
+        MESSAGE="✅🔥 Deployed to *PRODUCTION* – $CI_COMMIT_SHORT_SHA"
+      elif [ "$DEPLOY_ENV" = "development" ]; then
+        MESSAGE="✅🛠️ Deployed to *DEVELOPMENT* – $CI_COMMIT_SHORT_SHA"
+      else
+        MESSAGE="✅ Pipeline complete – $CI_COMMIT_SHORT_SHA"
+      fi
+
+      echo "Sending Slack notification: $MESSAGE"
+      curl -X POST -H 'Content-type: application/json' --data "{\"text\":\"$MESSAGE\"}" "$SLACK_WEBHOOK"
+  rules:
+    # - if: '$CI_COMMIT_BRANCH == "staging"'
+    #   needs: [deploy_staging]
+    - if: '$CI_COMMIT_TAG'
+      when: never 
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      needs: [deploy_prod]
+    - when: always
