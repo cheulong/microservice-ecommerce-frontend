@@ -5,11 +5,11 @@
 lint:admin:
   <<: *sast_common
   script:
-    - pnpm turbo run lint --filter=web
+    - pnpm turbo run lint --filter=admin
   allow_failure: false
   rules:
     - changes:
-        - apps/web/**/*
+        - apps/admin/**/*
 
 lint:client:
   <<: *sast_common
