@@ -1,17 +1,21 @@
 import Fastify from 'fastify';
 
-const server = Fastify();
+const fastify = Fastify();
 
-server.get('/health', async () => {
-  return { status: 'OK' };
+fastify.get("/health", (request, reply) => {
+  return reply.status(200).send({
+    status: "ok",
+    uptime: process.uptime(),
+    timestamp: Date.now(),
+  });
 });
 
 const start = async () => {
   try {
-    await server.listen({ port: 8001 });
+    await fastify.listen({ port: 8001 });
     console.log('Order Service is running on port 8001');
   } catch (err) {
-    server.log.error(err);
+    fastify.log.error(err);
     process.exit(1);
   }
 };
